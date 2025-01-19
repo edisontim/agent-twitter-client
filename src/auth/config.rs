@@ -28,4 +28,4 @@ impl AuthConfig {
         self.email = email;
         self
     }
-} 
+}

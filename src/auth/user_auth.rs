@@ -4,6 +4,7 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use cookie::CookieJar;
 use reqwest::header::{HeaderMap, HeaderValue};
+use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::any::Any;
@@ -14,7 +15,6 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 use totp_rs::{Algorithm, TOTP};
 use tracing;
-use reqwest::Client;
 
 #[derive(Debug)]
 enum SubtaskType {
@@ -126,7 +126,11 @@ impl TwitterUserAuth {
         Ok(response)
     }
 
-    async fn execute_flow_task(&self, client: &Client, request: FlowTaskRequest) -> Result<FlowResponse> {
+    async fn execute_flow_task(
+        &self,
+        client: &Client,
+        request: FlowTaskRequest,
+    ) -> Result<FlowResponse> {
         let mut headers = HeaderMap::new();
         self.install_headers(&mut headers).await?;
 
@@ -172,13 +176,16 @@ impl TwitterUserAuth {
             if let Some(subtask) = subtasks.first() {
                 flow_response = match SubtaskType::from(subtask.subtask_id.as_str()) {
                     SubtaskType::LoginJsInstrumentation => {
-                        self.handle_js_instrumentation_subtask(client, flow_token).await?
+                        self.handle_js_instrumentation_subtask(client, flow_token)
+                            .await?
                     }
                     SubtaskType::LoginEnterUserIdentifier => {
-                        self.handle_username_input(client, flow_token, username).await?
+                        self.handle_username_input(client, flow_token, username)
+                            .await?
                     }
                     SubtaskType::LoginEnterPassword => {
-                        self.handle_password_input(client, flow_token, password).await?
+                        self.handle_password_input(client, flow_token, password)
+                            .await?
                     }
                     SubtaskType::LoginAcid => {
                         if let Some(email_str) = email {
@@ -191,11 +198,13 @@ impl TwitterUserAuth {
                         }
                     }
                     SubtaskType::AccountDuplicationCheck => {
-                        self.handle_account_duplication_check(client, flow_token).await?
+                        self.handle_account_duplication_check(client, flow_token)
+                            .await?
                     }
                     SubtaskType::LoginTwoFactorAuthChallenge => {
                         if let Some(secret) = two_factor_secret {
-                            self.handle_two_factor_auth(client, flow_token, secret).await?
+                            self.handle_two_factor_auth(client, flow_token, secret)
+                                .await?
                         } else {
                             return Err(TwitterError::Auth(
                                 "Two factor authentication required".into(),
@@ -212,15 +221,14 @@ impl TwitterUserAuth {
                             ));
                         }
                     }
-                    SubtaskType::LoginSuccess => self.handle_success_subtask(client, flow_token).await?,
+                    SubtaskType::LoginSuccess => {
+                        self.handle_success_subtask(client, flow_token).await?
+                    }
                     SubtaskType::DenyLogin => {
                         return Err(TwitterError::Auth("Login denied".into()));
                     }
                     SubtaskType::Unknown(id) => {
-                        return Err(TwitterError::Auth(format!(
-                            "Unhandled subtask: {}",
-                            id
-                        )));
+                        return Err(TwitterError::Auth(format!("Unhandled subtask: {}", id)));
                     }
                 };
                 flow_token = flow_response.flow_token;
@@ -232,7 +240,11 @@ impl TwitterUserAuth {
         Ok(())
     }
 
-    async fn handle_js_instrumentation_subtask(&self, client: &Client, flow_token: String) -> Result<FlowResponse> {
+    async fn handle_js_instrumentation_subtask(
+        &self,
+        client: &Client,
+        flow_token: String,
+    ) -> Result<FlowResponse> {
         let request = FlowTaskRequest {
             flow_token,
             subtask_inputs: vec![json!({
@@ -312,7 +324,11 @@ impl TwitterUserAuth {
         self.execute_flow_task(client, request).await
     }
 
-    async fn handle_account_duplication_check(&self, client: &Client, flow_token: String) -> Result<FlowResponse> {
+    async fn handle_account_duplication_check(
+        &self,
+        client: &Client,
+        flow_token: String,
+    ) -> Result<FlowResponse> {
         let request = FlowTaskRequest {
             flow_token,
             subtask_inputs: vec![json!({
@@ -370,7 +386,11 @@ impl TwitterUserAuth {
         self.execute_flow_task(client, request).await
     }
 
-    async fn handle_success_subtask(&self, client: &Client, flow_token: String) -> Result<FlowResponse> {
+    async fn handle_success_subtask(
+        &self,
+        client: &Client,
+        flow_token: String,
+    ) -> Result<FlowResponse> {
         let request = FlowTaskRequest {
             flow_token,
             subtask_inputs: vec![],
@@ -389,7 +409,8 @@ impl TwitterUserAuth {
         );
 
         let (response, _) =
-            request_api::<serde_json::Value>(client, url, headers, reqwest::Method::POST, None).await?;
+            request_api::<serde_json::Value>(client, url, headers, reqwest::Method::POST, None)
+                .await?;
 
         let guest_token = response
             .get("guest_token")
@@ -569,11 +590,7 @@ impl TwitterUserAuth {
         }
         Ok(true)
     }
-}
-
-#[async_trait]
-impl TwitterAuth for TwitterUserAuth {
-    async fn install_headers(&self, headers: &mut HeaderMap) -> Result<()> {
+    pub async fn install_headers(&self, headers: &mut HeaderMap) -> Result<()> {
         let cookie_jar = self.cookie_jar.lock().await;
         let cookies: Vec<_> = cookie_jar.iter().collect();
         if !cookies.is_empty() {
@@ -618,17 +635,17 @@ impl TwitterAuth for TwitterUserAuth {
         Ok(())
     }
 
-    async fn get_cookies(&self) -> Result<Vec<cookie::Cookie<'_>>> {
+    pub async fn get_cookies(&self) -> Result<Vec<cookie::Cookie<'_>>> {
         let jar = self.cookie_jar.lock().await;
         Ok(jar.iter().map(|c| c.to_owned()).collect())
     }
 
-    fn delete_token(&mut self) {
+    pub fn delete_token(&mut self) {
         self.guest_token = None;
         self.created_at = None;
     }
 
-    fn as_any(&self) -> &dyn Any {
+    pub fn as_any(&self) -> &dyn Any {
         self
     }
 }

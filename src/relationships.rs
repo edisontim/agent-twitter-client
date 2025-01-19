@@ -1,3 +1,4 @@
+use crate::api::client::TwitterClient;
 use crate::api::requests::request_api;
 use crate::api::requests::request_form_api;
 use crate::error::{Result, TwitterError};
@@ -7,7 +8,6 @@ use chrono::{DateTime, Utc};
 use reqwest::Method;
 use serde::Deserialize;
 use serde_json::{json, Value};
-use crate::api::client::TwitterClient;
 #[derive(Debug, Deserialize)]
 pub struct RelationshipResponse {
     pub data: Option<RelationshipData>,
@@ -232,7 +232,6 @@ async fn get_following_timeline(
     max_items: i32,
     cursor: Option<String>,
 ) -> Result<RelationshipTimeline> {
-
     let count = if max_items > 50 { 50 } else { max_items };
 
     let mut variables = json!({
@@ -263,7 +262,9 @@ async fn get_following_timeline(
     let mut headers = reqwest::header::HeaderMap::new();
     client.auth.install_headers(&mut headers).await?;
 
-    let (_data, _) = request_api::<RelationshipTimeline>(&client.client, &url, headers, Method::GET, None).await?;
+    let (_data, _) =
+        request_api::<RelationshipTimeline>(&client.client, &url, headers, Method::GET, None)
+            .await?;
 
     Ok(_data)
 }
@@ -386,7 +387,6 @@ pub async fn follow_user(client: &TwitterClient, username: &str) -> Result<()> {
 }
 
 pub async fn unfollow_user(client: &TwitterClient, username: &str) -> Result<()> {
-
     let user_id = crate::profile::get_user_id_by_screen_name(client, username).await?;
 
     let url = "https://api.twitter.com/1.1/friendships/destroy.json";

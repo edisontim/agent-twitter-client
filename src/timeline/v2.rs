@@ -238,16 +238,15 @@ pub fn parse_legacy_tweet(
         })
         .unwrap_or_default();
 
-    let (photos, videos, _) =
-        if let Some(extended_entities) = &tweet.extended_entities {
-            if let Some(media) = &extended_entities.media {
-                parse_media_groups(media)
-            } else {
-                (Vec::new(), Vec::new(), false)
-            }
+    let (photos, videos, _) = if let Some(extended_entities) = &tweet.extended_entities {
+        if let Some(media) = &extended_entities.media {
+            parse_media_groups(media)
         } else {
             (Vec::new(), Vec::new(), false)
-        };
+        }
+    } else {
+        (Vec::new(), Vec::new(), false)
+    };
 
     let mut tweet = Tweet {
         bookmark_count: tweet.bookmark_count,
@@ -437,15 +436,13 @@ pub fn parse_timeline_tweets_v2(timeline: &TimelineV2) -> QueryTweetsResponse {
     let expected_entry_types = ["tweet-", "profile-conversation-"];
 
     for instruction in instructions {
-        let entries = instruction
-            .entries.as_deref()
-            .unwrap_or_else(|| {
-                instruction
-                    .entry
-                    .as_ref()
-                    .map(std::slice::from_ref)
-                    .unwrap_or_default()
-            });
+        let entries = instruction.entries.as_deref().unwrap_or_else(|| {
+            instruction
+                .entry
+                .as_ref()
+                .map(std::slice::from_ref)
+                .unwrap_or_default()
+        });
 
         for entry in entries {
             let content = match &entry.content {
@@ -513,9 +510,7 @@ pub fn parse_threaded_conversation(conversation: &ThreadedConversation) -> Optio
         .unwrap_or(&EMPTY_INSTRUCTIONS);
 
     for instruction in instructions {
-        let entries = instruction
-            .entries.as_deref()
-            .unwrap_or_default();
+        let entries = instruction.entries.as_deref().unwrap_or_default();
 
         for entry in entries {
             if let Some(content) = &entry.content {

@@ -227,12 +227,10 @@ pub fn parse_legacy_tweet(
         .map(|mentions| {
             mentions
                 .iter()
-                .filter_map(|m| {
-                    Some(Mention {
-                        id: m.id_str.clone().unwrap_or_default(),
-                        name: m.name.clone(),
-                        username: m.screen_name.clone(),
-                    })
+                .map(|m| Mention {
+                    id: m.id_str.clone().unwrap_or_default(),
+                    name: m.name.clone(),
+                    username: m.screen_name.clone(),
                 })
                 .collect()
         })

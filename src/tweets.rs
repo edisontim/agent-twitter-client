@@ -456,7 +456,7 @@ async fn check_upload_status(
     Err(TwitterError::Api("Video processing timeout".into()))
 }
 
-pub async fn get_tweet(client: &TwitterClient, id: &str) -> Result<Tweet> {
+pub async fn get_tweet(client: &TwitterClient, id: &str) -> Result<(Option<Tweet>, Option<Vec<Tweet>>)> {
     let mut headers = HeaderMap::new();
     client.auth.install_headers(&mut headers).await?;
     let tweet_detail_request = Endpoints::tweet_detail(id);
@@ -466,11 +466,8 @@ pub async fn get_tweet(client: &TwitterClient, id: &str) -> Result<Tweet> {
         request_api::<Value>(&client.client, &url, headers, Method::GET, None).await?;
     let data = response.clone();
     let conversation: ThreadedConversation = serde_json::from_value(data)?;
-    let tweets = parse_threaded_conversation(&conversation);
-    tweets
-        .into_iter()
-        .next()
-        .ok_or_else(|| TwitterError::Api("No tweets found".into()))
+    let (main_tweet, replies) = parse_threaded_conversation(&conversation);
+    Ok((main_tweet, replies))
 }
 
 fn create_tweet_features() -> Value {

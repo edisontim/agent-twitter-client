@@ -220,7 +220,7 @@ impl Scraper {
         crate::tweets::create_long_tweet(&self.twitter_client, text, reply_to, media_ids).await
     }
 
-    pub async fn get_tweet(&self, id: &str) -> Result<Tweet> {
+    pub async fn get_tweet(&self, id: &str) -> Result<(Option<Tweet>, Option<Vec<Tweet>>)> {
         crate::tweets::get_tweet(&self.twitter_client, id).await
     }
 

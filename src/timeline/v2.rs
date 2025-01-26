@@ -496,7 +496,9 @@ pub fn parse_timeline_tweets_v2(timeline: &TimelineV2) -> QueryTweetsResponse {
     }
 }
 
-pub fn parse_threaded_conversation(conversation: &ThreadedConversation) -> Option<Tweet> {
+pub fn parse_threaded_conversation(
+    conversation: &ThreadedConversation,
+) -> (Option<Tweet>, Option<Vec<Tweet>>) {
     let mut main_tweet: Option<Tweet> = None;
     let mut replies: Vec<Tweet> = Vec::new();
 
@@ -573,8 +575,8 @@ pub fn parse_threaded_conversation(conversation: &ThreadedConversation) -> Optio
 
         // main_tweet.html = reconstruct_tweet_html(&main_tweet);
 
-        Some(main_tweet)
+        (Some(main_tweet), Some(replies))
     } else {
-        None
+        (None, None)
     }
 }

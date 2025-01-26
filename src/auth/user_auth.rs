@@ -531,6 +531,7 @@ impl TwitterUserAuth {
             cookie_jar.add(cookie.into_owned());
         }
 
+        std::mem::drop(cookie_jar);
         let mut headers = HeaderMap::new();
         self.install_headers(&mut headers).await?;
         Ok(())

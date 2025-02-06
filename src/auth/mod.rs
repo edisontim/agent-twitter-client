@@ -1,3 +1,2 @@
-pub mod user_auth;
 pub mod config;
-
+pub mod user_auth;

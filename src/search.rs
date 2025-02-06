@@ -1,3 +1,4 @@
+use crate::api::client::TwitterClient;
 use crate::api::requests::request_api;
 use crate::error::Result;
 use crate::timeline::search::{
@@ -6,7 +7,6 @@ use crate::timeline::search::{
 use crate::timeline::v1::{QueryProfilesResponse, QueryTweetsResponse};
 use reqwest::Method;
 use serde_json::json;
-use crate::api::client::TwitterClient;
 #[derive(Debug, Clone, Copy)]
 pub enum SearchMode {
     Top,
@@ -41,13 +41,12 @@ pub async fn search_profiles(
 }
 
 async fn get_search_timeline(
-    client: &TwitterClient, 
+    client: &TwitterClient,
     query: &str,
     max_items: i32,
     search_mode: SearchMode,
     _cursor: Option<String>,
 ) -> Result<SearchTimeline> {
-
     let max_items = if max_items > 50 { 50 } else { max_items };
 
     let mut variables = json!({
@@ -116,9 +115,11 @@ async fn get_search_timeline(
         "withArticleRichContentState": false
     });
 
-    let params = [("variables", serde_json::to_string(&variables)?),
+    let params = [
+        ("variables", serde_json::to_string(&variables)?),
         ("features", serde_json::to_string(&features)?),
-        ("fieldToggles", serde_json::to_string(&field_toggles)?)];
+        ("fieldToggles", serde_json::to_string(&field_toggles)?),
+    ];
 
     let query_string = params
         .iter()
@@ -134,7 +135,8 @@ async fn get_search_timeline(
         query_string
     );
 
-    let (response, _) = request_api::<SearchTimeline>(&client.client, &url, headers, Method::GET, None).await?;
+    let (response, _) =
+        request_api::<SearchTimeline>(&client.client, &url, headers, Method::GET, None).await?;
 
     Ok(response)
 }

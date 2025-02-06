@@ -1,6 +1,5 @@
 use crate::api::client::TwitterClient;
 use crate::error::{Result, TwitterError};
-use chrono::{DateTime, Utc};
 use reqwest::header::HeaderMap;
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
@@ -71,7 +70,7 @@ pub struct TwitterUser {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DirectMessageEvent {
     pub id: String,
-    pub type_: String,  // Using type_ since 'type' is a keyword in Rust
+    pub type_: String, // Using type_ since 'type' is a keyword in Rust
     pub message_create: MessageCreate,
 }
 
@@ -193,22 +192,29 @@ pub async fn send_direct_message(
     Ok(response)
 }
 
-fn parse_direct_message_conversations(data: &Value, user_id: &str) -> Result<DirectMessagesResponse> {
-    let inbox_state = data.get("inbox_initial_state")
+fn parse_direct_message_conversations(
+    data: &Value,
+    user_id: &str,
+) -> Result<DirectMessagesResponse> {
+    let inbox_state = data
+        .get("inbox_initial_state")
         .ok_or_else(|| TwitterError::Api("Missing inbox_initial_state".into()))?;
 
     let empty_map = serde_json::Map::new();
-    let conversations = inbox_state.get("conversations")
+    let conversations = inbox_state
+        .get("conversations")
         .and_then(|v| v.as_object())
         .unwrap_or(&empty_map);
-    
+
     let empty_vec = Vec::new();
 
-    let entries = inbox_state.get("entries")
+    let entries = inbox_state
+        .get("entries")
         .and_then(|v| v.as_array())
         .unwrap_or(&empty_vec);
 
-    let users = inbox_state.get("users")
+    let users = inbox_state
+        .get("users")
         .and_then(|v| v.as_object())
         .unwrap_or(&empty_map);
 
@@ -219,46 +225,80 @@ fn parse_direct_message_conversations(data: &Value, user_id: &str) -> Result<Dir
     let messages_by_conversation = group_messages_by_conversation(entries);
 
     // Convert to DirectMessageConversation array
-    let parsed_conversations = conversations.iter().map(|(conv_id, conv)| {
-        let messages = messages_by_conversation.get(conv_id).map(|v| v.as_slice()).unwrap_or(&[]);
-        parse_conversation(conv_id, conv, messages, users)
-    }).collect();
+    let parsed_conversations = conversations
+        .iter()
+        .map(|(conv_id, conv)| {
+            let messages = messages_by_conversation
+                .get(conv_id)
+                .map(|v| v.as_slice())
+                .unwrap_or(&[]);
+            parse_conversation(conv_id, conv, messages, users)
+        })
+        .collect();
 
     Ok(DirectMessagesResponse {
         conversations: parsed_conversations,
         users: parsed_users,
-        cursor: inbox_state.get("cursor").and_then(|v| v.as_str()).map(String::from),
-        last_seen_event_id: inbox_state.get("last_seen_event_id").and_then(|v| v.as_str()).map(String::from),
-        trusted_last_seen_event_id: inbox_state.get("trusted_last_seen_event_id").and_then(|v| v.as_str()).map(String::from),
-        untrusted_last_seen_event_id: inbox_state.get("untrusted_last_seen_event_id").and_then(|v| v.as_str()).map(String::from),
+        cursor: inbox_state
+            .get("cursor")
+            .and_then(|v| v.as_str())
+            .map(String::from),
+        last_seen_event_id: inbox_state
+            .get("last_seen_event_id")
+            .and_then(|v| v.as_str())
+            .map(String::from),
+        trusted_last_seen_event_id: inbox_state
+            .get("trusted_last_seen_event_id")
+            .and_then(|v| v.as_str())
+            .map(String::from),
+        untrusted_last_seen_event_id: inbox_state
+            .get("untrusted_last_seen_event_id")
+            .and_then(|v| v.as_str())
+            .map(String::from),
         inbox_timelines: parse_inbox_timelines(inbox_state),
         user_id: user_id.to_string(),
     })
 }
 
 fn parse_users(users: &serde_json::Map<String, Value>) -> Vec<TwitterUser> {
-    users.values().filter_map(|user| {
-        Some(TwitterUser {
-            id: user.get("id_str")?.as_str()?.to_string(),
-            screen_name: user.get("screen_name")?.as_str()?.to_string(),
-            name: user.get("name")?.as_str()?.to_string(),
-            profile_image_url: user.get("profile_image_url_https")?.as_str()?.to_string(),
-            description: user.get("description").and_then(|v| v.as_str()).map(String::from),
-            verified: user.get("verified").and_then(|v| v.as_bool()),
-            protected: user.get("protected").and_then(|v| v.as_bool()),
-            followers_count: user.get("followers_count").and_then(|v| v.as_i64()).map(|v| v as i32),
-            friends_count: user.get("friends_count").and_then(|v| v.as_i64()).map(|v| v as i32),
+    users
+        .values()
+        .filter_map(|user| {
+            Some(TwitterUser {
+                id: user.get("id_str")?.as_str()?.to_string(),
+                screen_name: user.get("screen_name")?.as_str()?.to_string(),
+                name: user.get("name")?.as_str()?.to_string(),
+                profile_image_url: user.get("profile_image_url_https")?.as_str()?.to_string(),
+                description: user
+                    .get("description")
+                    .and_then(|v| v.as_str())
+                    .map(String::from),
+                verified: user.get("verified").and_then(|v| v.as_bool()),
+                protected: user.get("protected").and_then(|v| v.as_bool()),
+                followers_count: user
+                    .get("followers_count")
+                    .and_then(|v| v.as_i64())
+                    .map(|v| v as i32),
+                friends_count: user
+                    .get("friends_count")
+                    .and_then(|v| v.as_i64())
+                    .map(|v| v as i32),
+            })
         })
-    }).collect()
+        .collect()
 }
 
-fn group_messages_by_conversation(entries: &[Value]) -> std::collections::HashMap<String, Vec<&Value>> {
-    let mut messages_by_conversation: std::collections::HashMap<String, Vec<&Value>> = std::collections::HashMap::new();
-    
+fn group_messages_by_conversation(
+    entries: &[Value],
+) -> std::collections::HashMap<String, Vec<&Value>> {
+    let mut messages_by_conversation: std::collections::HashMap<String, Vec<&Value>> =
+        std::collections::HashMap::new();
+
     for entry in entries {
         if let Some(message) = entry.get("message") {
             if let Some(conv_id) = message.get("conversation_id").and_then(|v| v.as_str()) {
-                messages_by_conversation.entry(conv_id.to_string())
+                messages_by_conversation
+                    .entry(conv_id.to_string())
                     .or_default()
                     .push(message);
             }
@@ -268,21 +308,31 @@ fn group_messages_by_conversation(entries: &[Value]) -> std::collections::HashMa
     messages_by_conversation
 }
 
-fn parse_conversation(conv_id: &str, conv: &Value, messages: &[&Value], users: &serde_json::Map<String, Value>) -> DirectMessageConversation {
+fn parse_conversation(
+    conv_id: &str,
+    conv: &Value,
+    messages: &[&Value],
+    users: &serde_json::Map<String, Value>,
+) -> DirectMessageConversation {
     let parsed_messages = parse_direct_messages(messages, users);
-    let participants = conv.get("participants")
+    let participants = conv
+        .get("participants")
         .and_then(|p| p.as_array())
         .map(|parts| {
-            parts.iter().filter_map(|p| {
-                Some(Participant {
-                    id: p.get("user_id")?.as_str()?.to_string(),
-                    screen_name: users.get(p.get("user_id")?.as_str()?)
-                        .and_then(|u| u.get("screen_name"))
-                        .and_then(|s| s.as_str())
-                        .unwrap_or(p.get("user_id")?.as_str()?)
-                        .to_string(),
+            parts
+                .iter()
+                .filter_map(|p| {
+                    Some(Participant {
+                        id: p.get("user_id")?.as_str()?.to_string(),
+                        screen_name: users
+                            .get(p.get("user_id")?.as_str()?)
+                            .and_then(|u| u.get("screen_name"))
+                            .and_then(|s| s.as_str())
+                            .unwrap_or(p.get("user_id")?.as_str()?)
+                            .to_string(),
+                    })
                 })
-            }).collect()
+                .collect()
         })
         .unwrap_or_default();
 
@@ -293,26 +343,34 @@ fn parse_conversation(conv_id: &str, conv: &Value, messages: &[&Value], users: &
     }
 }
 
-fn parse_direct_messages(messages: &[&Value], users: &serde_json::Map<String, Value>) -> Vec<DirectMessage> {
-    messages.iter().filter_map(|msg| {
-        let message_data = msg.get("message_data")?;
-        Some(DirectMessage {
-            id: message_data.get("id")?.as_str()?.to_string(),
-            text: message_data.get("text")?.as_str()?.to_string(),
-            sender_id: message_data.get("sender_id")?.as_str()?.to_string(),
-            recipient_id: message_data.get("recipient_id")?.as_str()?.to_string(),
-            created_at: message_data.get("time")?.as_str()?.to_string(),
-            media_urls: extract_media_urls(message_data),
-            sender_screen_name: users.get(message_data.get("sender_id")?.as_str()?)
-                .and_then(|u| u.get("screen_name"))
-                .and_then(|s| s.as_str())
-                .map(String::from),
-            recipient_screen_name: users.get(message_data.get("recipient_id")?.as_str()?)
-                .and_then(|u| u.get("screen_name"))
-                .and_then(|s| s.as_str())
-                .map(String::from),
+fn parse_direct_messages(
+    messages: &[&Value],
+    users: &serde_json::Map<String, Value>,
+) -> Vec<DirectMessage> {
+    messages
+        .iter()
+        .filter_map(|msg| {
+            let message_data = msg.get("message_data")?;
+            Some(DirectMessage {
+                id: message_data.get("id")?.as_str()?.to_string(),
+                text: message_data.get("text")?.as_str()?.to_string(),
+                sender_id: message_data.get("sender_id")?.as_str()?.to_string(),
+                recipient_id: message_data.get("recipient_id")?.as_str()?.to_string(),
+                created_at: message_data.get("time")?.as_str()?.to_string(),
+                media_urls: extract_media_urls(message_data),
+                sender_screen_name: users
+                    .get(message_data.get("sender_id")?.as_str()?)
+                    .and_then(|u| u.get("screen_name"))
+                    .and_then(|s| s.as_str())
+                    .map(String::from),
+                recipient_screen_name: users
+                    .get(message_data.get("recipient_id")?.as_str()?)
+                    .and_then(|u| u.get("screen_name"))
+                    .and_then(|s| s.as_str())
+                    .map(String::from),
+            })
         })
-    }).collect()
+        .collect()
 }
 
 fn extract_media_urls(message_data: &Value) -> Option<Vec<String>> {
@@ -331,9 +389,10 @@ fn extract_media_urls(message_data: &Value) -> Option<Vec<String>> {
         // Extract media URLs
         if let Some(media_entities) = entities.get("media").and_then(|m| m.as_array()) {
             for media in media_entities {
-                if let Some(media_url) = media.get("media_url_https")
+                if let Some(media_url) = media
+                    .get("media_url_https")
                     .or_else(|| media.get("media_url"))
-                    .and_then(|u| u.as_str()) 
+                    .and_then(|u| u.as_str())
                 {
                     urls.push(media_url.to_string());
                 }
@@ -349,17 +408,24 @@ fn extract_media_urls(message_data: &Value) -> Option<Vec<String>> {
 }
 
 fn parse_inbox_timelines(inbox_state: &Value) -> Option<InboxTimelines> {
-    inbox_state.get("inbox_timelines").map(|timelines| {
-        InboxTimelines {
+    inbox_state
+        .get("inbox_timelines")
+        .map(|timelines| InboxTimelines {
             trusted: parse_timeline_status(timelines.get("trusted")),
             untrusted: parse_timeline_status(timelines.get("untrusted")),
-        }
-    })
+        })
 }
 
 fn parse_timeline_status(timeline: Option<&Value>) -> Option<TimelineStatus> {
     timeline.map(|t| TimelineStatus {
-        status: t.get("status").and_then(|s| s.as_str()).unwrap_or("").to_string(),
-        min_entry_id: t.get("min_entry_id").and_then(|m| m.as_str()).map(String::from),
+        status: t
+            .get("status")
+            .and_then(|s| s.as_str())
+            .unwrap_or("")
+            .to_string(),
+        min_entry_id: t
+            .get("min_entry_id")
+            .and_then(|m| m.as_str())
+            .map(String::from),
     })
-} 
+}

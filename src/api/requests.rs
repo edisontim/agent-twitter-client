@@ -1,6 +1,6 @@
 use crate::error::Result;
 use reqwest::multipart::Form;
-use reqwest::{Client, header::HeaderMap, Method};
+use reqwest::{header::HeaderMap, Client, Method};
 use serde::de::DeserializeOwned;
 
 pub async fn request_api<T>(
@@ -13,9 +13,7 @@ pub async fn request_api<T>(
 where
     T: DeserializeOwned,
 {
-    let mut request = client
-        .request(method, url)
-        .headers(headers);
+    let mut request = client.request(method, url).headers(headers);
 
     if let Some(json_body) = body {
         request = request.json(&json_body);

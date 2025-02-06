@@ -95,8 +95,7 @@ pub fn parse_search_timeline_tweets(timeline: &SearchTimeline) -> QueryTweetsRes
                                         if let Ok(tweet_result) = parse_legacy_tweet(
                                             user_legacy,
                                             result.legacy.as_deref(),
-                                        )
-                                        {
+                                        ) {
                                             if tweet_result.views.is_none() {
                                                 if let Some(views) = &result.views {
                                                     if let Some(count) = &views.count {

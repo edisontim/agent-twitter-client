@@ -1,5 +1,5 @@
-use agent_twitter_client::scraper::Scraper;
 use agent_twitter_client::error::Result;
+use agent_twitter_client::scraper::Scraper;
 use dotenv::dotenv;
 
 #[tokio::main]

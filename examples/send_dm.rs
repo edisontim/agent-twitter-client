@@ -1,5 +1,5 @@
-use agent_twitter_client::scraper::Scraper;
 use agent_twitter_client::error::Result;
+use agent_twitter_client::scraper::Scraper;
 use dotenv::dotenv;
 
 #[tokio::main]
@@ -9,12 +9,14 @@ async fn main() -> Result<()> {
     let cookie_string = std::env::var("TWITTER_COOKIE_STRING")
         .expect("TWITTER_COOKIE_STRING environment variable not set");
     scraper.set_from_cookie_string(&cookie_string).await?;
-    let username = std::env::var("TWITTER_USERNAME")
-        .expect("TWITTER_USERNAME environment variable not set");
-    let dm_history = scraper.get_direct_message_conversations(&username, None).await?;
-    
+    let username =
+        std::env::var("TWITTER_USERNAME").expect("TWITTER_USERNAME environment variable not set");
+    let dm_history = scraper
+        .get_direct_message_conversations(&username, None)
+        .await?;
+
     let user_id = dm_history.user_id.as_str();
-    
+
     for conversation in dm_history.conversations {
         if let Some(last_message) = conversation.messages.last() {
             let sender_id = last_message.sender_id.as_str();
@@ -28,6 +30,6 @@ async fn main() -> Result<()> {
             }
         }
     }
-    
+
     Ok(())
 }

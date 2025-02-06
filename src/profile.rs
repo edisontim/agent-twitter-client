@@ -1,3 +1,4 @@
+use crate::api::client::TwitterClient;
 use crate::api::requests::request_api;
 use crate::error::{Result, TwitterError};
 use crate::models::Profile;
@@ -9,7 +10,6 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Mutex;
-use crate::api::client::TwitterClient;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserProfile {
